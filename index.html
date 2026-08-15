@@ -134,7 +134,7 @@
       <label for="spend">Amount to spend (AUD)</label>
       <div class="input-wrap">
         <span>$</span>
-        <input id="spend" type="text" inputmode="numeric" autocomplete="off" placeholder="50.00">
+        <input id="spend" type="number" inputmode="decimal" min="0" step="1" placeholder="50.00">
       </div>
     </div>
 
@@ -179,7 +179,7 @@
     kmEl.textContent = `~${Math.round(km)}`;
   }
 
-  // Both fields are entered like a till/EFTPOS amount: digits fill in from
+  // Fuel price is entered like a till/EFTPOS amount: digits fill in from
   // the right and the field always reads as XXX.XX, so there's no separate
   // decimal key and no unformatted in-between state while typing. Once the
   // XXX.XX cap is hit, further digits are rejected — the user must delete
@@ -214,7 +214,8 @@
   }
 
   attachMoneyMask(priceEl, 5); // hard cap at 999.99
-  attachMoneyMask(spendEl, 5); // hard cap at $999.99
+
+  spendEl.addEventListener("input", calculate);
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
