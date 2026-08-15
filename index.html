@@ -134,7 +134,7 @@
       <label for="spend">Amount to spend (AUD)</label>
       <div class="input-wrap">
         <span>$</span>
-        <input id="spend" type="number" inputmode="decimal" min="0" step="1" placeholder="50.00">
+        <input id="spend" type="text" inputmode="numeric" autocomplete="off" placeholder="50.00">
       </div>
     </div>
 
@@ -179,45 +179,50 @@
     kmEl.textContent = `~${Math.round(km)}`;
   }
 
-  function formatToTwoDecimals(el) {
-    const value = parseFloat(el.value);
-    if (Number.isFinite(value)) {
-      el.value = value.toFixed(2);
-    }
-  }
+  // Both fields are entered like a till/EFTPOS amount: digits fill in from
+  // the right and the field always reads as X...X.XX, so there's no
+  // separate decimal key and no unformatted in-between state while typing.
+  //
+  // maxDigits caps the whole-number width. onFull controls what happens
+  // once that cap is hit: "slide" drops the oldest digit to make room
+  // (price, generous ceiling, unlikely to matter); "block" rejects further
+  // digits until the user deletes first (spend, hard XXX.XX limit).
+  function attachMoneyMask(el, { maxDigits, onFull }) {
+    let digits = "";
 
-  // Price is entered like a till/EFTPOS amount: digits fill in from the
-  // right and the field always reads as XX.XX, so there's no separate
-  // decimal key and no unformatted in-between state while typing.
-  let priceDigits = "";
-
-  function renderPrice() {
-    priceEl.value = priceDigits === "" ? "" : (parseInt(priceDigits, 10) / 100).toFixed(2);
-  }
-
-  priceEl.addEventListener("beforeinput", (event) => {
-    event.preventDefault();
-
-    const wholeValueSelected =
-      priceEl.selectionStart === 0 && priceEl.selectionEnd === priceEl.value.length && priceEl.value.length > 0;
-
-    if (event.inputType === "insertText" || event.inputType === "insertFromPaste" || event.inputType === "insertCompositionText") {
-      const digits = (event.data || "").replace(/\D/g, "");
-      if (!digits) return;
-      if (wholeValueSelected) priceDigits = "";
-      priceDigits = (priceDigits + digits).slice(-6); // cap at $9999.99
-    } else if (event.inputType === "deleteContentBackward" || event.inputType === "deleteContentForward") {
-      priceDigits = wholeValueSelected ? "" : priceDigits.slice(0, -1);
-    } else {
-      return;
+    function render() {
+      el.value = digits === "" ? "" : (parseInt(digits, 10) / 100).toFixed(2);
     }
 
-    renderPrice();
-    calculate();
-  });
+    el.addEventListener("beforeinput", (event) => {
+      event.preventDefault();
 
-  spendEl.addEventListener("input", calculate);
-  spendEl.addEventListener("blur", () => formatToTwoDecimals(spendEl));
+      const wholeValueSelected =
+        el.selectionStart === 0 && el.selectionEnd === el.value.length && el.value.length > 0;
+
+      if (event.inputType === "insertText" || event.inputType === "insertFromPaste" || event.inputType === "insertCompositionText") {
+        const typed = (event.data || "").replace(/\D/g, "");
+        if (!typed) return;
+        if (wholeValueSelected) digits = "";
+
+        if (onFull === "block") {
+          digits = (digits + typed).slice(0, maxDigits);
+        } else {
+          digits = (digits + typed).slice(-maxDigits);
+        }
+      } else if (event.inputType === "deleteContentBackward" || event.inputType === "deleteContentForward") {
+        digits = wholeValueSelected ? "" : digits.slice(0, -1);
+      } else {
+        return;
+      }
+
+      render();
+      calculate();
+    });
+  }
+
+  attachMoneyMask(priceEl, { maxDigits: 6, onFull: "slide" }); // up to $9999.99
+  attachMoneyMask(spendEl, { maxDigits: 5, onFull: "block" }); // hard cap at $999.99
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
