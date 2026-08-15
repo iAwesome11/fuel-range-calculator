@@ -70,7 +70,8 @@
     color: var(--muted);
     font-size: 1rem;
   }
-  input[type="number"] {
+  input[type="number"],
+  input[type="text"] {
     flex: 1;
     min-width: 0;
     background: transparent;
@@ -125,7 +126,7 @@
       <label for="price">Fuel price (cents per litre)</label>
       <div class="input-wrap">
         <span>¢</span>
-        <input id="price" type="number" inputmode="decimal" min="0" step="0.1" placeholder="150.00">
+        <input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="150.00">
       </div>
     </div>
 
@@ -185,9 +186,37 @@
     }
   }
 
-  priceEl.addEventListener("input", calculate);
+  // Price is entered like a till/EFTPOS amount: digits fill in from the
+  // right and the field always reads as XX.XX, so there's no separate
+  // decimal key and no unformatted in-between state while typing.
+  let priceDigits = "";
+
+  function renderPrice() {
+    priceEl.value = priceDigits === "" ? "" : (parseInt(priceDigits, 10) / 100).toFixed(2);
+  }
+
+  priceEl.addEventListener("beforeinput", (event) => {
+    event.preventDefault();
+
+    const wholeValueSelected =
+      priceEl.selectionStart === 0 && priceEl.selectionEnd === priceEl.value.length && priceEl.value.length > 0;
+
+    if (event.inputType === "insertText" || event.inputType === "insertFromPaste" || event.inputType === "insertCompositionText") {
+      const digits = (event.data || "").replace(/\D/g, "");
+      if (!digits) return;
+      if (wholeValueSelected) priceDigits = "";
+      priceDigits = (priceDigits + digits).slice(-6); // cap at $9999.99
+    } else if (event.inputType === "deleteContentBackward" || event.inputType === "deleteContentForward") {
+      priceDigits = wholeValueSelected ? "" : priceDigits.slice(0, -1);
+    } else {
+      return;
+    }
+
+    renderPrice();
+    calculate();
+  });
+
   spendEl.addEventListener("input", calculate);
-  priceEl.addEventListener("blur", () => formatToTwoDecimals(priceEl));
   spendEl.addEventListener("blur", () => formatToTwoDecimals(spendEl));
 
   if ("serviceWorker" in navigator) {
