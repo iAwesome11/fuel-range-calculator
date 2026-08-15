@@ -175,7 +175,7 @@
     const km = litres * (100 / CONSUMPTION_L_PER_100KM);
 
     litresEl.textContent = litres.toFixed(2);
-    kmEl.textContent = km.toFixed(1);
+    kmEl.textContent = `~${Math.round(km)}`;
   }
 
   function formatToTwoDecimals(el) {
