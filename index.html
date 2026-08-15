@@ -126,7 +126,7 @@
       <label for="price">Fuel price (cents per litre)</label>
       <div class="input-wrap">
         <span>¢</span>
-        <input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="150.00">
+        <input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="150.0">
       </div>
     </div>
 
@@ -180,15 +180,16 @@
   }
 
   // Fuel price is entered like a till/EFTPOS amount: digits fill in from
-  // the right and the field always reads as XXX.XX, so there's no separate
+  // the right and the field always reads as XXX.X, so there's no separate
   // decimal key and no unformatted in-between state while typing. Once the
-  // XXX.XX cap is hit, further digits are rejected — the user must delete
+  // XXX.X cap is hit, further digits are rejected — the user must delete
   // (backspace or select-all) before entering a new value.
-  function attachMoneyMask(el, maxDigits) {
+  function attachMoneyMask(el, maxDigits, decimalPlaces) {
     let digits = "";
+    const divisor = 10 ** decimalPlaces;
 
     function render() {
-      el.value = digits === "" ? "" : (parseInt(digits, 10) / 100).toFixed(2);
+      el.value = digits === "" ? "" : (parseInt(digits, 10) / divisor).toFixed(decimalPlaces);
     }
 
     el.addEventListener("beforeinput", (event) => {
@@ -213,7 +214,7 @@
     });
   }
 
-  attachMoneyMask(priceEl, 5); // hard cap at 999.99
+  attachMoneyMask(priceEl, 4, 1); // hard cap at 999.9
 
   spendEl.addEventListener("input", calculate);
 
