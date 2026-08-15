@@ -178,8 +178,17 @@
     kmEl.textContent = km.toFixed(1);
   }
 
+  function formatToTwoDecimals(el) {
+    const value = parseFloat(el.value);
+    if (Number.isFinite(value)) {
+      el.value = value.toFixed(2);
+    }
+  }
+
   priceEl.addEventListener("input", calculate);
   spendEl.addEventListener("input", calculate);
+  priceEl.addEventListener("blur", () => formatToTwoDecimals(priceEl));
+  spendEl.addEventListener("blur", () => formatToTwoDecimals(spendEl));
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
