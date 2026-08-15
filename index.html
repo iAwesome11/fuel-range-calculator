@@ -180,14 +180,11 @@
   }
 
   // Both fields are entered like a till/EFTPOS amount: digits fill in from
-  // the right and the field always reads as X...X.XX, so there's no
-  // separate decimal key and no unformatted in-between state while typing.
-  //
-  // maxDigits caps the whole-number width. onFull controls what happens
-  // once that cap is hit: "slide" drops the oldest digit to make room
-  // (price, generous ceiling, unlikely to matter); "block" rejects further
-  // digits until the user deletes first (spend, hard XXX.XX limit).
-  function attachMoneyMask(el, { maxDigits, onFull }) {
+  // the right and the field always reads as XXX.XX, so there's no separate
+  // decimal key and no unformatted in-between state while typing. Once the
+  // XXX.XX cap is hit, further digits are rejected — the user must delete
+  // (backspace or select-all) before entering a new value.
+  function attachMoneyMask(el, maxDigits) {
     let digits = "";
 
     function render() {
@@ -204,12 +201,7 @@
         const typed = (event.data || "").replace(/\D/g, "");
         if (!typed) return;
         if (wholeValueSelected) digits = "";
-
-        if (onFull === "block") {
-          digits = (digits + typed).slice(0, maxDigits);
-        } else {
-          digits = (digits + typed).slice(-maxDigits);
-        }
+        digits = (digits + typed).slice(0, maxDigits);
       } else if (event.inputType === "deleteContentBackward" || event.inputType === "deleteContentForward") {
         digits = wholeValueSelected ? "" : digits.slice(0, -1);
       } else {
@@ -221,8 +213,8 @@
     });
   }
 
-  attachMoneyMask(priceEl, { maxDigits: 6, onFull: "slide" }); // up to $9999.99
-  attachMoneyMask(spendEl, { maxDigits: 5, onFull: "block" }); // hard cap at $999.99
+  attachMoneyMask(priceEl, 5); // hard cap at 999.99
+  attachMoneyMask(spendEl, 5); // hard cap at $999.99
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
